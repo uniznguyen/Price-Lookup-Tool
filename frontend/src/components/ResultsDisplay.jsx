@@ -1,6 +1,14 @@
 import React, { useEffect } from 'react'
 import * as XLSX from 'xlsx'
 
+// Price Page Category color mapping
+const CATEGORY_COLORS = {
+  'Exception': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+  'Default Maintained': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300' },
+  'Default Non-Maintained': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+  'Default Online': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
+}
+
 // Define which columns to display in the table
 const DISPLAY_COLUMNS = [
   'item_id',
@@ -19,7 +27,7 @@ const DETAIL_COLUMNS = [
   'customer_name',
   'calculation_value',
   'calculation_method_cd',
-  'commission_cost',
+  'price_page_commission_cost_value',
   'inv_mast_uid',
   'price_page_uid',
   'price_page_category',
@@ -39,6 +47,7 @@ const NUMERIC_COLUMNS = ['base_price', 'calculation_value', 'commission_cost', '
 function ResultsDisplay({ data }) {
   // Track which rows are expanded
   const [expandedRows, setExpandedRows] = React.useState({})
+  const [copiedToClipboard, setCopiedToClipboard] = React.useState(false)
 
   const toggleRowExpanded = (rowIdx) => {
     console.log(`🔄 Toggling expand for row ${rowIdx}`)
@@ -120,6 +129,30 @@ function ResultsDisplay({ data }) {
       .join(' ')
   }
 
+  // Render colored badge for price_page_category
+  const renderCategoryBadge = (value) => {
+    if (!value) return '-'
+    const colors = CATEGORY_COLORS[value] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300' }
+    return (
+      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold ${colors.bg} ${colors.text}`}>
+        {value}
+      </span>
+    )
+  }
+
+  // Render table cell value with special handling for price_page_description
+  const renderTableCellValue = (row, col) => {
+    if (col === 'price_page_description') {
+      return (
+        <div className="flex flex-row gap-2 items-center flex-wrap">
+          <span>{formatValue(row[col], col)}</span>
+          {row['price_page_category'] && renderCategoryBadge(row['price_page_category'])}
+        </div>
+      )
+    }
+    return formatValue(row[col], col)
+  }
+
   // Export data to Excel
   const exportToExcel = () => {
     try {
@@ -192,6 +225,20 @@ function ResultsDisplay({ data }) {
     } catch (err) {
       console.error('❌ Error exporting to Excel:', err)
       alert('Failed to export to Excel. Please try again.')
+    }
+  }
+
+  // Copy CSV data to clipboard
+  const copyCSVToClipboard = () => {
+    try {
+      const csvData = generateCSV()
+      navigator.clipboard.writeText(csvData)
+      setCopiedToClipboard(true)
+      setTimeout(() => setCopiedToClipboard(false), 2000)
+      console.log('✅ CSV data copied to clipboard')
+    } catch (err) {
+      console.error('❌ Error copying to clipboard:', err)
+      alert('Failed to copy to clipboard')
     }
   }
 
@@ -365,7 +412,7 @@ function ResultsDisplay({ data }) {
                             NUMERIC_COLUMNS.includes(col) ? 'text-right font-mono' : ''
                           }`}
                         >
-                          {formatValue(row[col], col)}
+                          {renderTableCellValue(row, col)}
                         </td>
                       ))}
                     </tr>
@@ -379,7 +426,7 @@ function ResultsDisplay({ data }) {
                                 <div key={col} className="text-xs">
                                   <span className="font-semibold text-gray-600">{formatColumnName(col)}:</span>
                                   <div className="text-gray-900 ml-2 mt-0.5 break-words">
-                                    {formatValue(row[col], col)}
+                                    {col === 'price_page_category' ? renderCategoryBadge(row[col]) : formatValue(row[col], col)}
                                   </div>
                                 </div>
                               ))}
@@ -402,9 +449,17 @@ function ResultsDisplay({ data }) {
           <span className="mr-2">📋</span>
           View as CSV (Copy & Paste to Excel)
         </summary>
-        <pre className="mt-2 bg-gray-900 text-gray-100 p-3 rounded overflow-auto text-xs font-mono whitespace-pre-wrap break-words">
-          {generateCSV()}
-        </pre>
+        <div className="mt-2 flex flex-col gap-2">
+          <button
+            onClick={copyCSVToClipboard}
+            className="self-start px-3 py-1 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 transition-colors"
+          >
+            {copiedToClipboard ? '✅ Copied!' : '📋 Copy to Clipboard'}
+          </button>
+          <pre className="bg-gray-100 text-gray-900 p-3 rounded overflow-auto text-xs font-mono whitespace-pre-wrap break-words border border-gray-300">
+            {generateCSV()}
+          </pre>
+        </div>
       </details>
     </div>
   )

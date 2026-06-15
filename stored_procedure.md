@@ -31,8 +31,12 @@ EXEC dbo.p21_quick_price
 , price_page.contract_number
 , price_page.effective_date
 , price_page.expiration_date
+, price_page.commission_cost_value
 ,price_page_ud.price_page_category
+,code.code_description as calculation_method_cd
   FROM p21_view_price_page price_page
   LEFT JOIN p21_view_price_page_ud price_page_ud
    ON price_page.price_page_uid = price_page_ud.price_page_uid
+  LEFT JOIN p21_view_code_p21 code
+   ON code.code_no = price_page.calculation_method_cd 
   WHERE price_page.price_page_uid IN (@price_page_uid)

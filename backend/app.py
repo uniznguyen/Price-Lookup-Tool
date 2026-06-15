@@ -102,17 +102,21 @@ def get_price_page_details(cursor, price_page_uid):
     """Look up price page details from p21_view_price_page with category from p21_view_price_page_ud"""
     try:
         logger.debug(f"🔍 Looking up price page details for price_page_uid: {price_page_uid}")
-        # Query with JOIN to get price_page_category from price_page_ud
+        # Query with JOINs to get price_page_category, commission_cost_value, and calculation_method_cd
         query = """
             SELECT 
                 price_page.description, 
                 price_page.contract_number, 
                 price_page.effective_date, 
                 price_page.expiration_date,
-                price_page_ud.price_page_category
+                price_page.commission_cost_value,
+                price_page_ud.price_page_category,
+                code.code_description
             FROM p21_view_price_page price_page
             LEFT JOIN p21_view_price_page_ud price_page_ud
                 ON price_page.price_page_uid = price_page_ud.price_page_uid
+            LEFT JOIN p21_view_code_p21 code
+                ON code.code_no = price_page.calculation_method_cd
             WHERE price_page.price_page_uid = ?
         """
         cursor.execute(query, (price_page_uid,))
@@ -123,7 +127,9 @@ def get_price_page_details(cursor, price_page_uid):
                 'contract_number': result[1],
                 'effective_date': result[2],
                 'expiration_date': result[3],
-                'price_page_category': result[4]
+                'price_page_commission_cost_value': result[4],
+                'price_page_category': result[5],
+                'calculation_method_cd': result[6]
             }
             logger.debug(f"✓ Found price page details: {details}")
             return details
@@ -136,6 +142,8 @@ def get_price_page_details(cursor, price_page_uid):
                     contract_number, 
                     effective_date, 
                     expiration_date,
+                    NULL,
+                    NULL,
                     NULL
                 FROM p21_view_price_page 
                 WHERE price_page = ?
@@ -148,7 +156,9 @@ def get_price_page_details(cursor, price_page_uid):
                     'contract_number': result[1],
                     'effective_date': result[2],
                     'expiration_date': result[3],
-                    'price_page_category': result[4]
+                    'price_page_commission_cost_value': result[4],
+                    'price_page_category': result[5],
+                    'calculation_method_cd': result[6]
                 }
                 logger.debug(f"✓ Found price page details with price_page: {details}")
                 return details
