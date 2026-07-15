@@ -43,7 +43,9 @@ DATABASE = os.getenv('DB_NAME', 'CommerceCenter')
 logger.info(f"🔧 Server Configuration - Server: {SERVER}, Database: {DATABASE}")
 
 # Connection string using Windows Authentication (Integrated Security)
-conn_string = f'Driver={{ODBC Driver 17 for SQL Server}};Server={SERVER};Database={DATABASE};Trusted_Connection=yes;'
+# MARS_Connection=yes allows multiple cursors/result sets to be active concurrently
+# on the same physical connection (lookup_conn is shared across several cursors).
+conn_string = f'Driver={{ODBC Driver 17 for SQL Server}};Server={SERVER};Database={DATABASE};Trusted_Connection=yes;MARS_Connection=yes;'
 
 def convert_row_types(row_dict):
     """Convert pyodbc result types to JSON-serializable Python types"""
