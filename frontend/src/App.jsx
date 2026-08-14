@@ -4,8 +4,20 @@ import PriceQueryForm from './components/PriceQueryForm'
 import ResultsDisplay from './components/ResultsDisplay'
 import './index.css'
 
+const RESULTS_STORAGE_KEY = 'priceInquiry.results'
+
+// Restore last results from sessionStorage so an idle/background tab reload doesn't wipe them.
+function loadResults() {
+  try {
+    const stored = sessionStorage.getItem(RESULTS_STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 function App() {
-  const [results, setResults] = useState(null)
+  const [results, setResults] = useState(loadResults)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -14,6 +26,18 @@ function App() {
     // Test health check on mount
     testHealthCheck()
   }, [])
+
+  useEffect(() => {
+    try {
+      if (results) {
+        sessionStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(results))
+      } else {
+        sessionStorage.removeItem(RESULTS_STORAGE_KEY)
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing) - ignore, in-memory state still works
+    }
+  }, [results])
 
   const testHealthCheck = async () => {
     try {

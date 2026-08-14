@@ -1,11 +1,51 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
+const DEFAULT_CUSTOMER_ID = '102572'
+const DEFAULT_ITEMS = [{ id: uuidv4(), itemId: 'BF11019', quantity: '1', locationId: '100001' }]
+
+const CUSTOMER_ID_STORAGE_KEY = 'priceInquiry.customerId'
+const ITEMS_STORAGE_KEY = 'priceInquiry.items'
+
+// Persist form input in sessionStorage so an idle/background tab reload (browser tab
+// discarding, sleep/wake, etc.) restores what the user typed instead of resetting to defaults.
+function loadCustomerId() {
+  try {
+    return sessionStorage.getItem(CUSTOMER_ID_STORAGE_KEY) ?? DEFAULT_CUSTOMER_ID
+  } catch {
+    return DEFAULT_CUSTOMER_ID
+  }
+}
+
+function loadItems() {
+  try {
+    const stored = sessionStorage.getItem(ITEMS_STORAGE_KEY)
+    const parsed = stored ? JSON.parse(stored) : null
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_ITEMS
+  } catch {
+    return DEFAULT_ITEMS
+  }
+}
+
 function PriceQueryForm({ onSubmit, isLoading }) {
-  const [customerId, setCustomerId] = useState('102572')
-  const [items, setItems] = useState([
-    { id: uuidv4(), itemId: 'BF11019', quantity: '1', locationId: '100001' }
-  ])
+  const [customerId, setCustomerId] = useState(loadCustomerId)
+  const [items, setItems] = useState(loadItems)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CUSTOMER_ID_STORAGE_KEY, customerId)
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing) - ignore, in-memory state still works
+    }
+  }, [customerId])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items))
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing) - ignore, in-memory state still works
+    }
+  }, [items])
 
   const handleCustomerIdChange = (e) => {
     const value = e.target.value
@@ -63,7 +103,7 @@ function PriceQueryForm({ onSubmit, isLoading }) {
 
   const handleReset = () => {
     console.log('🔄 Form reset initiated')
-    setCustomerId('102572')
+    setCustomerId(DEFAULT_CUSTOMER_ID)
     setItems([{ id: uuidv4(), itemId: 'BF11019', quantity: '1', locationId: '100001' }])
   }
 
