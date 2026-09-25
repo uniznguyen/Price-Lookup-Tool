@@ -100,6 +100,18 @@ def get_customer_name(cursor, customer_id):
         logger.error(f"❌ Error looking up customer: {e}", exc_info=True)
         return None
 
+# Default shape for price page fields, merged into every row so all rows share the
+# same keys regardless of whether a price_page_uid was found (see get_price_page_details).
+PRICE_PAGE_DEFAULTS = {
+    'price_page_description': None,
+    'contract_number': None,
+    'effective_date': None,
+    'expiration_date': None,
+    'price_page_commission_cost_value': None,
+    'price_page_category': None,
+    'calculation_method_cd': None
+}
+
 def get_price_page_details(cursor, price_page_uid):
     """Look up price page details from p21_view_price_page with category from p21_view_price_page_ud"""
     try:
@@ -345,6 +357,9 @@ def query_price_batch():
                     row_dict['customer_id'] = customer_id
                     row_dict['customer_name'] = customer_name
                     row_dict['item_id'] = item_id
+                    # Always set price page keys so every row has the same shape,
+                    # otherwise the frontend (which derives columns from row 1) can hide the column.
+                    row_dict.update(PRICE_PAGE_DEFAULTS)
                     if 'price_page_uid' in row_dict and row_dict['price_page_uid']:
                         uid = row_dict['price_page_uid']
                         if uid not in price_page_cache:

@@ -260,18 +260,19 @@ function ResultsDisplay({ data }) {
         'expiration_date'
       ]
 
-      // Determine all columns in order
+      // Determine all columns in order (union across all rows, not just the first)
+      const unionColumns = new Set(results.flatMap(row => Object.keys(row)))
       const allColumns = []
       
       // Add prioritized columns
       prioritizedColumns.forEach(col => {
-        if (results[0].hasOwnProperty(col)) {
+        if (unionColumns.has(col)) {
           allColumns.push(col)
         }
       })
       
       // Add remaining columns
-      Object.keys(results[0]).forEach(col => {
+      unionColumns.forEach(col => {
         if (!prioritizedColumns.includes(col)) {
           allColumns.push(col)
         }
@@ -325,7 +326,9 @@ function ResultsDisplay({ data }) {
 
   const results = data.data
   const firstRow = results[0]
-  const allColumns = Object.keys(firstRow)
+  // Union of keys across all rows - some rows (e.g. no price page match) may omit fields
+  // that other rows have, so relying on just firstRow's keys can hide whole columns.
+  const allColumns = [...new Set(results.flatMap(row => Object.keys(row)))]
   const displayColumns = DISPLAY_COLUMNS.filter(col => allColumns.includes(col))
   
   console.log(`✓ Displaying ${results.length} result(s)`)
